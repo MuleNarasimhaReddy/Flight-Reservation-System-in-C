@@ -1,0 +1,190 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_NAME_LEN 50
+#define MAX_FLIGHTS 100
+#define FILE_NAME "flights.dat"
+
+// Structure to store flight information
+typedef struct {
+    int flightNumber;
+    char destination[MAX_NAME_LEN];
+    char date[11]; // Format: YYYY-MM-DD
+    int seatsAvailable;
+} Flight;
+
+// Function prototypes
+void addFlight();
+void viewFlights();
+void bookSeat();
+void cancelReservation();
+int loadFlights(Flight flights[]);
+void saveFlights(Flight flights[], int count);
+void displayFlight(Flight flight);
+
+// Main Menu
+int main() {
+    int choice;
+
+    while (1) {
+        printf("\n========== ✈️ Flight Reservation System ✈️ ==========\n");
+        printf("1. Add Flight\n");
+        printf("2. View Flights\n");
+        printf("3. Book a Seat\n");
+        printf("4. Cancel Reservation\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar(); // Clear newline from buffer
+
+        switch (choice) {
+            case 1: addFlight(); break;
+            case 2: viewFlights(); break;
+            case 3: bookSeat(); break;
+            case 4: cancelReservation(); break;
+            case 5: printf("Exiting... Goodbye! 👋\n"); exit(0);
+            default: printf("Invalid choice! Try again.\n");
+        }
+    }
+
+    return 0;
+}
+
+// Add a new flight
+void addFlight() {
+    Flight flights[MAX_FLIGHTS];
+    int count = loadFlights(flights);
+
+    if (count >= MAX_FLIGHTS) {
+        printf("Flight list is full! Cannot add more flights.\n");
+        return;
+    }
+
+    Flight newFlight;
+    printf("\nEnter Flight Number: ");
+    scanf("%d", &newFlight.flightNumber);
+    getchar();
+
+    printf("Enter Destination: ");
+    fgets(newFlight.destination, MAX_NAME_LEN, stdin);
+    newFlight.destination[strcspn(newFlight.destination, "\n")] = 0;
+
+    printf("Enter Flight Date (YYYY-MM-DD): ");
+    scanf("%s", newFlight.date);
+
+    printf("Enter Available Seats: ");
+    scanf("%d", &newFlight.seatsAvailable);
+
+    flights[count] = newFlight;
+    saveFlights(flights, count + 1);
+
+    printf("✅ Flight added successfully!\n");
+}
+
+// View all flights
+void viewFlights() {
+    Flight flights[MAX_FLIGHTS];
+    int count = loadFlights(flights);
+
+    if (count == 0) {
+        printf("No flights available.\n");
+        return;
+    }
+
+    printf("\n%-5s %-15s %-12s %-5s\n", "No.", "Destination", "Date", "Seats");
+    printf("---------------------------------------------\n");
+    for (int i = 0; i < count; i++) {
+        displayFlight(flights[i]);
+    }
+}
+
+// Display a single flight
+void displayFlight(Flight flight) {
+    printf("%-5d %-15s %-12s %-5d\n", flight.flightNumber, flight.destination, flight.date, flight.seatsAvailable);
+}
+
+// Book a seat
+void bookSeat() {
+    Flight flights[MAX_FLIGHTS];
+    int count = loadFlights(flights);
+
+    if (count == 0) {
+        printf("No flights available.\n");
+        return;
+    }
+
+    int flightNumber;
+    printf("\nEnter Flight Number to book a seat: ");
+    scanf("%d", &flightNumber);
+
+    for (int i = 0; i < count; i++) {
+        if (flights[i].flightNumber == flightNumber) {
+            if (flights[i].seatsAvailable > 0) {
+                flights[i].seatsAvailable--;
+                saveFlights(flights, count);
+                printf("✅ Seat booked successfully on Flight %d!\n", flightNumber);
+                return;
+            } else {
+                printf("❌ No seats available on this flight.\n");
+                return;
+            }
+        }
+    }
+
+    printf("❌ Flight with number %d not found.\n", flightNumber);
+}
+
+// Cancel a reservation
+void cancelReservation() {
+    Flight flights[MAX_FLIGHTS];
+    int count = loadFlights(flights);
+
+    if (count == 0) {
+        printf("No flights available.\n");
+        return;
+    }
+
+    int flightNumber;
+    printf("\nEnter Flight Number to cancel reservation: ");
+    scanf("%d", &flightNumber);
+
+    for (int i = 0; i < count; i++) {
+        if (flights[i].flightNumber == flightNumber) {
+            flights[i].seatsAvailable++;
+            saveFlights(flights, count);
+            printf("✅ Reservation canceled successfully for Flight %d!\n", flightNumber);
+            return;
+        }
+    }
+
+    printf("❌ Flight with number %d not found.\n", flightNumber);
+}
+
+// Load flights from file
+int loadFlights(Flight flights[]) {
+    FILE *file = fopen(FILE_NAME, "rb");
+    if (!file) {
+        return 0;
+    }
+
+    int count = 0;
+    while (fread(&flights[count], sizeof(Flight), 1, file) && count < MAX_FLIGHTS) {
+        count++;
+    }
+
+    fclose(file);
+    return count;
+}
+
+// Save flights to file
+void saveFlights(Flight flights[], int count) {
+    FILE *file = fopen(FILE_NAME, "wb");
+    if (!file) {
+        printf("Error saving flights to file!\n");
+        return;
+    }
+
+    fwrite(flights, sizeof(Flight), count, file);
+    fclose(file);
+}
